@@ -1,0 +1,7 @@
+1. Data yang akan di input bisa edit di Data/LosData
+	- Kolom yang berwarna kuning tidak perlu di ganti
+	- Sheet Card untuk inputannya bisa lihat dari file CardTypeLos
+	- Saat input data kartu perhatikan min limit dan max limit
+	- kartu Supplemen sebaiknya limitnya kecil saja
+	- Kalau mau jalanin Selain Supplemen tidak perlu isi sheet Supplement
+2. Jalanin ketik di cmd py mainLos.py atau py mainLOSuplement.py

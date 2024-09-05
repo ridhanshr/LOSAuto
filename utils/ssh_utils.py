@@ -53,6 +53,8 @@ def automate_putty(noAplikasi, host, username, password):
         if appFlag in ["5.7.0"]:
             # Close applications if appFlag is 5.7.0
             for _ in range(2):
+                pyautogui.hotkey('ctrl', 'c')
+                time.sleep(2)
                 pyautogui.hotkey('alt', 'f4')
                 time.sleep(1)
                 pyautogui.hotkey('enter')

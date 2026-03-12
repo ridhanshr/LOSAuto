@@ -1,0 +1,14 @@
+{
+  "browser": "edge",
+  "data_file": "Data/LOSData.xlsx",
+  "screenshot_dir": "Data/screenshoot",
+  "log_level": "info",
+  "theme": "default",
+  "timeout": 30,
+  "headless": false,
+  "window_size": "1920,1080",
+  "credentials": {
+    "username": "cc_dam",
+    "password": ""
+  }
+}

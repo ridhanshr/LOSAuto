@@ -1,0 +1,8 @@
+selenium
+openpyxl
+faker
+pyinstaller
+pillow
+pywin32
+pyodbc
+requests

@@ -1,0 +1,114 @@
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const path = require('path');
+const { spawn } = require('child_process');
+const fs = require('fs');
+
+let mainWindow;
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    titleBarStyle: 'hidden',
+    backgroundColor: '#0f172a',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  const isDev = process.env.NODE_ENV === 'development';
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.webContents.openDevTools();
+  } else {
+    mainWindow.loadFile(path.join(__dirname, 'dist/index.html'));
+  }
+}
+
+app.whenReady().then(() => {
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+// IPC Handler to select a file
+ipcMain.handle('select-file', async () => {
+  console.log('Select file dialog requested');
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [{ name: 'Excel Files', extensions: ['xlsx', 'xls'] }, { name: 'All Files', extensions: ['*'] }]
+  });
+  if (!canceled) {
+    console.log('File selected:', filePaths[0]);
+    return filePaths[0];
+  }
+  return null;
+});
+
+// IPC Handler to select a directory
+ipcMain.handle('select-directory', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+  });
+  if (!canceled) {
+    return filePaths[0];
+  }
+  return null;
+});
+
+
+// IPC Handler to run Python scripts
+ipcMain.handle('run-automation', async (event, { scriptName, browserType, dataFile, speed }) => {
+  return new Promise((resolve, reject) => {
+    console.log(`Starting automation: ${scriptName} with ${browserType} and speed ${speed}`);
+    
+    const pythonExe = process.platform === 'win32' ? 'python' : 'python3';
+    const projectRoot = path.resolve(__dirname, '..');
+    
+    // Use the provided dataFile or fallback to default
+    const targetDataFile = dataFile || path.join(projectRoot, 'Data/LOSData.xlsx');
+    
+    // Construct arguments including speed if relevant (implementation in python scripts may vary)
+    const args = ['-m', scriptName, '--browser', browserType.toLowerCase(), '--data-file', targetDataFile];
+    if (speed === 'Fast (Experimental)') args.push('--fast');
+    
+    console.log(`Executing: ${pythonExe} ${args.join(' ')}`);
+
+    const child = spawn(pythonExe, args, {
+      cwd: projectRoot,
+      env: { ...process.env, PYTHONUNBUFFERED: '1' },
+      shell: true
+    });
+
+    child.stdout.on('data', (data) => {
+      event.sender.send('automation-log', data.toString());
+    });
+
+    child.stderr.on('data', (data) => {
+      event.sender.send('automation-log', `[ERROR] ${data.toString()}`);
+    });
+
+    child.on('close', (code) => {
+      event.sender.send('automation-log', `--- Process finished with code ${code} ---`);
+      resolve({ code });
+    });
+
+    child.on('error', (err) => {
+      event.sender.send('automation-log', `[SYSTEM ERROR] ${err.message}`);
+      reject(err);
+    });
+  });
+});
+

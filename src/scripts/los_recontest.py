@@ -1,3 +1,11 @@
+import os
+import sys
+
+# Add project root to sys.path
+root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -29,13 +37,20 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--browser", default=config.get("browser", "edge"), help="Browser type")
     parser.add_argument("--log-level", default=config.get("log_level", "info"), help="Log level")
+    parser.add_argument("--fast", action="store_true", help="Run in fast/headless mode")
     args, unknown = parser.parse_known_args()
 
     # Setup logging
     setup_logging(args.log_level)
     logger = logging.getLogger("LOSAuto.Recontest")
 
-    driver = setup_webdriver(args.browser)
+    # Fast mode: reduced delays
+    fast = args.fast
+    def wait(seconds):
+        """Adaptive sleep: reduced in fast mode."""
+        time.sleep(max(0.5, seconds * 0.6) if fast else seconds)
+
+    driver = setup_webdriver(args.browser, fast_mode=args.fast)
 
     try:
         # Setup path data
@@ -142,7 +157,7 @@ def main():
         """
         generate QR
         """
-        time.sleep(2)
+        wait(2)
         logger.info("Generate QR Step Start")
         driver.get("http://172.24.141.61/bricc/ScreenMenu.aspx?sm=BAR|G&passurl&mntitle=Generate%20Barcode&row=8&barfontsize=40&barsize=100&imgwidth=250&borderwidth=0&altalign=1&padtop=20&rowheight=73&colwidth=350&cellspacing=0")
         WebDriverWait(driver, 180).until(EC.invisibility_of_element((By.XPATH, '//body[1]/form[1]/div[3]/table[2]/tbody[1]/tr[2]/td[1]/table[2]/tbody[1]/tr[1]/td[2]/span[1]')))
@@ -168,26 +183,26 @@ def main():
         WebDriverWait(driver, 180).until(EC.invisibility_of_element((By.XPATH, '//body[1]/form[1]/div[3]/table[2]/tbody[1]/tr[2]/td[1]/table[2]/tbody[1]/tr[1]/td[2]/span[1]')))
         WebDriverWait(driver, 999).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'framex')))
         WebDriverWait(driver, 320).until(EC.element_to_be_clickable((By.ID, "mainPanel_Button1"))).click()
-        time.sleep(1)
+        wait(1)
         driver.find_element(By.ID, "PopFindBasic_PNL_FindBasic_fAP_REGNO").send_keys(noAplikasiData)
-        time.sleep(2)
+        wait(2)
         WebDriverWait(driver, 320).until(EC.element_to_be_clickable((By.XPATH, "(//input[@value='Find'])[1]"))).click()
         WebDriverWait(driver, 320).until(EC.element_to_be_clickable((By.ID, "PopFindBasic_PNL_FindBasic_GridViewX_cell0_7_Button4"))).click()
-        time.sleep(3)
+        wait(3)
         WebDriverWait(driver, 180).until(EC.invisibility_of_element((By.XPATH, '//body[1]/form[1]/div[3]/table[2]/tbody[1]/tr[1]/td[1]/table[1]/tbody[1]/tr[2]/td[1]/div[1]/table[2]/tbody[1]/tr[1]/td[2]/span[1]')))
         driver.find_element(By.XPATH, "(//input[@id='mainPanel_df_BARCODE'])[1]").send_keys('9901000000007')
-        time.sleep(3)
+        wait(3)
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "mainPanel_eventPanel_df_EVENTID")))
         Select(driver.find_element(By.ID, "mainPanel_eventPanel_df_EVENTID")).select_by_value(str(9999999995))
         WebDriverWait(driver, 320).until(EC.element_to_be_clickable((By.ID, f"mainPanel_df_PLASTICID_{plasticTypeData}"))).click()
-        time.sleep(1)
+        wait(1)
         WebDriverWait(driver, 320).until(EC.element_to_be_clickable((By.ID, "mainPanel_Button2"))).click()
-        time.sleep(3)
+        wait(3)
         for _ in range(2):
             try:
                 WebDriverWait(driver, 50).until(EC.alert_is_present())
                 driver.switch_to.alert.accept()
-                time.sleep(5)
+                wait(5)
             except:
                 pass
         WebDriverWait(driver, 180).until(EC.invisibility_of_element_located((By.XPATH, '//body[1]/form[1]/div[3]/table[2]/tbody[1]/tr[1]/td[2]')))
@@ -198,11 +213,11 @@ def main():
         Document Checking
         """
         logger.info("Document Checking Step Start")
-        time.sleep(2)
+        wait(2)
         WebDriverWait(driver, 999).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'framex')))
         elementNoAplikasi = WebDriverWait(driver, 60).until(EC.visibility_of_element_located((By.ID, "UC_GeneralInfo1_l1")))
         valueNoAplikasi = elementNoAplikasi.text
-        time.sleep(2)
+        wait(2)
         workbook = load_workbook(xlsxdataPath)
         sheet1 = workbook['Entry Data']
         sheet1.cell(row=2, column=39).value = valueNoAplikasi
@@ -213,15 +228,15 @@ def main():
             WebDriverWait(driver, 180).until(EC.invisibility_of_element((By.XPATH, '//body[1]/form[1]/div[3]/table[2]/tbody[1]/tr[2]/td[1]/table[2]/tbody[1]/tr[1]/td[2]/span[1]')))
             update_document(driver, docCheckData)
             WebDriverWait(driver, 180).until(EC.invisibility_of_element((By.XPATH, '//body[1]/form[1]/div[3]/table[2]/tbody[1]/tr[2]/td[1]/table[2]/tbody[1]/tr[1]/td[2]/span[1]')))
-            time.sleep(3)
+            wait(3)
         WebDriverWait(driver, 180).until(EC.invisibility_of_element((By.XPATH, '//body[1]/form[1]/div[3]/table[2]/tbody[1]/tr[2]/td[1]/table[2]/tbody[1]/tr[1]/td[2]/span[1]')))
-        time.sleep(3)
+        wait(3)
         WebDriverWait(driver, 320).until(EC.element_to_be_clickable((By.ID, "updPanel_btnUpdate"))).click()
         for _ in range(2):
             try:
                 WebDriverWait(driver, 30).until(EC.alert_is_present())
                 driver.switch_to.alert.accept()
-                time.sleep(2)
+                wait(2)
             except:
                 pass
         driver.switch_to.default_content()
@@ -254,17 +269,17 @@ def main():
         WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "mainPanel_BTN_SAVE"))).click()
         WebDriverWait(driver, 10).until(EC.alert_is_present())
         driver.switch_to.alert.accept()
-        time.sleep(3)
+        wait(3)
         WebDriverWait(driver, 180).until(EC.invisibility_of_element_located((By.XPATH, '//body[1]/form[1]/div[3]/table[2]/tbody[1]/tr[1]/td[2]')))
         driver.switch_to.default_content()
         WebDriverWait(driver, 60).until(EC.element_to_be_clickable((By.XPATH, "//a[normalize-space()='Job Info']"))).click()
         WebDriverWait(driver, 999).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'framex')))
         WebDriverWait(driver, 180).until(EC.visibility_of_element_located((By.ID, "mainPanel_CU_COMPNAME")))
-        time.sleep(1)
+        wait(1)
         driver.find_element(By.XPATH, "//select[@id='mainPanel_CU_OFCTCODE']").send_keys("PT")
         driver.find_element(By.ID, "mainPanel_CU_BUSSINESSDESC").send_keys(bidangUsahaData)
         driver.find_element(By.XPATH, "//select[@id='mainPanel_CU_TOTEMP_CODE']").send_keys("4")
-        time.sleep(1)
+        wait(1)
         driver.find_element(By.ID, "mainPanel_CU_WORKSINCEYY").clear()
         driver.find_element(By.ID, "mainPanel_CU_WORKSINCEYY").send_keys(lamaBekerjaThnData)
         driver.find_element(By.ID, "mainPanel_CU_WORKSINCEMM").clear()
@@ -282,31 +297,31 @@ def main():
         WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "mainPanel_BTN_SAVE"))).click()
         WebDriverWait(driver, 10).until(EC.alert_is_present())
         driver.switch_to.alert.accept()
-        time.sleep(3)
+        wait(3)
         WebDriverWait(driver, 180).until(EC.invisibility_of_element_located((By.XPATH, '//body[1]/form[1]/div[3]/table[2]/tbody[1]/tr[1]/td[2]')))
         driver.switch_to.default_content()
         WebDriverWait(driver, 60).until(EC.element_to_be_clickable((By.XPATH, "//a[normalize-space()='Other Options']"))).click()
         update_accnum(valueNoAplikasi)
-        time.sleep(1)
+        wait(1)
         WebDriverWait(driver, 999).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'framex')))
         Select(driver.find_element(By.ID, "mainPanel_BILLING_STAT_TYPE")).select_by_value(str(pilihanBSData))
         driver.find_element(By.ID, "mainPanel_AD_ACCNUM").send_keys('0')
         WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "mainPanel_BTN_SAVE"))).click()
-        time.sleep(3)
+        wait(3)
         WebDriverWait(driver, 50).until(EC.alert_is_present())
         driver.switch_to.alert.accept()
-        time.sleep(3)
+        wait(3)
         WebDriverWait(driver, 180).until(EC.invisibility_of_element_located((By.XPATH, '//body[1]/form[1]/div[3]/table[2]/tbody[1]/tr[1]/td[2]')))
         driver.switch_to.default_content()
         WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//a[normalize-space()='Main']"))).click()
-        time.sleep(3)
+        wait(3)
         WebDriverWait(driver, 999).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'framex')))
         WebDriverWait(driver, 620).until(EC.element_to_be_clickable((By.ID, "mainPanel_btn_update"))).click()
         for _ in range(2):
             try:
                 WebDriverWait(driver, 30).until(EC.alert_is_present())
                 driver.switch_to.alert.accept()
-                time.sleep(3)
+                wait(3)
             except:
                 pass
         driver.switch_to.default_content()
@@ -324,18 +339,18 @@ def main():
         """
         DE Validation
         """
-        time.sleep(3)
+        wait(3)
         logger.info("Data Entry Validation Step Start")
         update_user(valueNoAplikasi)
         driver.get(f"http://172.24.141.61/bricc/ScreenMenu.aspx?sm=VDE&passurl&mntitle=Data%20Entry%20Validation&tc=3.5.1&regno={valueNoAplikasi}&stg=DE")
-        time.sleep(3)
+        wait(3)
         WebDriverWait(driver, 999).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'framex')))
         WebDriverWait(driver, 320).until(EC.element_to_be_clickable((By.ID, "mainPanel_btn_update"))).click()
         for _ in range(2):
             try:
                 WebDriverWait(driver, 50).until(EC.alert_is_present())
                 driver.switch_to.alert.accept()
-                time.sleep(5)
+                wait(5)
             except:
                 pass
         driver.switch_to.default_content()
@@ -358,7 +373,7 @@ def main():
         Credit Reviewer Assignment
         """
         logger.info("Credit Reviewer Assignment Start")
-        time.sleep(3)
+        wait(3)
         driver.get("http://172.24.141.61/bricc/ScreenMenu.aspx?sm=L|SPV&passurl&mntitle=Credit%20Reviewer%20Assignment&li1=LR|SPV|00&li2=LR|SPV|01&tc1=5.7.0&tc2=5.7.1&stg=ANLMINI")
         WebDriverWait(driver, 180).until(EC.invisibility_of_element((By.XPATH, '//body[1]/form[1]/div[3]/table[2]/tbody[1]/tr[2]/td[1]/table[2]/tbody[1]/tr[1]/td[2]/span[1]')))
         assign_data(driver, "mainPanel_SendTo", valueNoAplikasi, sendToAppReviewer)
@@ -369,20 +384,20 @@ def main():
         """
         logger.info("Credit Reviewer Start")
         update_user(valueNoAplikasi)
-        time.sleep(3)
+        wait(3)
         driver.get(f"http://172.24.141.61/bricc/ScreenMenu.aspx?sm=ANLMINI&passurl&mntitle=Credit%20Reviewer&tc=5.7.1&regno={valueNoAplikasi}&stg=ANL")
-        time.sleep(10)
+        wait(10)
         WebDriverWait(driver, 999).until(EC.element_to_be_clickable((By.XPATH, "//a[normalize-space()='Decision']"))).click()
         WebDriverWait(driver, 999).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'framex')))
-        time.sleep(5)
+        wait(5)
         WebDriverWait(driver, 180).until(EC.element_to_be_clickable((By.ID, "mainPanel_GV_PRODUCT_cell0_6_BTN_EDIT"))).click()
-        time.sleep(3)
+        wait(3)
         driver.find_element(By.ID, "popupDetail_panelDetail_df_CP_APRLIMIT").send_keys(str(limitData))
         WebDriverWait(driver, 180).until(EC.element_to_be_clickable((By.ID, "popupDetail_panelDetail_Button6"))).click()
-        time.sleep(10)
+        wait(10)
         WebDriverWait(driver, 620).until(EC.invisibility_of_element_located((By.ID, 'popupDetail_CSD-1')))
         Select(driver.find_element(By.ID, 'mainPanel_decPanel_dfa_AP_NEXTTRBY')).select_by_value("DIRTONI")
-        time.sleep(3)
+        wait(3)
         WebDriverWait(driver, 999).until(EC.element_to_be_clickable((By.XPATH, "//input[@id='mainPanel_decPanel_btn_update']"))).click()
         WebDriverWait(driver, 999).until(EC.alert_is_present())
         driver.switch_to.alert.accept()
@@ -399,14 +414,14 @@ def main():
         logger.info("Approval Step Start")
         update_user(valueNoAplikasi, ap_nexttrby='tsipsd')
         driver.get(f"http://172.24.141.61/bricc/ScreenMenu.aspx?sm=APRV&passurl&mntitle=Approval&tc=7.1&regno={valueNoAplikasi}&stg=APRV")
-        time.sleep(10)
+        wait(10)
         WebDriverWait(driver, 999).until(EC.element_to_be_clickable((By.XPATH, "//a[normalize-space()='Decision']"))).click()
         WebDriverWait(driver, 999).until(EC.frame_to_be_available_and_switch_to_it((By.ID, 'framex')))
         WebDriverWait(driver, 999).until(EC.element_to_be_clickable((By.ID, "mainPanel_decPanel_btn_appr"))).click()
         WebDriverWait(driver, 999).until(EC.alert_is_present())
         driver.switch_to.alert.accept()
         driver.switch_to.default_content()
-        time.sleep(10)
+        wait(10)
 
         if (noRekData != 0):
             update_norek(str(valueNoAplikasi), str(noRekData))

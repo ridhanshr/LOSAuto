@@ -191,6 +191,7 @@ const App = () => {
   const [logs, setLogs] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [latestScreenshot, setLatestScreenshot] = useState(null);
 
   const logEndRef = useRef(null);
 
@@ -219,9 +220,15 @@ const App = () => {
       window.electronAPI.onLog((message) => {
         setLogs(prev => [...prev, { id: Date.now(), msg: message, type: message.includes('ERROR') ? 'error' : 'info' }]);
       });
+      window.electronAPI.onScreenshot((filename) => {
+        setLatestScreenshot(`atom-img://Data/screenshoot/${filename}?t=${Date.now()}`);
+      });
     }
     return () => {
-      if (window.electronAPI) window.electronAPI.removeLogListener();
+      if (window.electronAPI) {
+        window.electronAPI.removeLogListener();
+        window.electronAPI.removeScreenshotListener();
+      }
     };
   }, []);
 
@@ -304,6 +311,15 @@ const App = () => {
       setLogs(prev => [...prev, { id: Date.now(), msg: `[SYSTEM ERROR] ${err.message}`, type: 'error' }]);
     } finally {
       setIsRunning(false);
+    }
+  };
+
+  const handleStop = async () => {
+    if (!isRunning) return;
+    try {
+      await window.electronAPI.stopAutomation();
+    } catch (err) {
+      console.error('Stop error:', err);
     }
   };
 
@@ -510,19 +526,29 @@ const App = () => {
                       <AlertCircle className="w-4 h-4 mr-2" />
                       Ensure Excel file is not locked by another process
                     </div>
-                    <button 
-                      onClick={() => tabs.find(t => t.id === activeTab)?.script && runAutomation(tabs.find(t => t.id === activeTab).script)}
-                      disabled={isRunning}
-                      className={cn(
-                        "flex items-center px-8 py-3 rounded-xl font-bold transition-all shadow-lg",
-                        isRunning 
-                          ? "bg-slate-700 text-slate-500 cursor-not-allowed" 
-                          : "bg-gradient-to-r from-primary to-primary-dark text-white hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0"
+                    <div className="flex space-x-3">
+                      {isRunning && (
+                        <button 
+                          onClick={handleStop}
+                          className="flex items-center px-6 py-3 rounded-xl font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20 transition-all"
+                        >
+                          Stop
+                        </button>
                       )}
-                    >
-                      {isRunning ? "Running..." : "Start Automation"}
-                      {!isRunning && <Play className="w-4 h-4 ml-2 fill-current" />}
-                    </button>
+                      <button 
+                        onClick={() => tabs.find(t => t.id === activeTab)?.script && runAutomation(tabs.find(t => t.id === activeTab).script)}
+                        disabled={isRunning}
+                        className={cn(
+                          "flex items-center px-8 py-3 rounded-xl font-bold transition-all shadow-lg",
+                          isRunning 
+                            ? "bg-slate-700 text-slate-500 cursor-not-allowed border border-slate-600/50" 
+                            : "bg-gradient-to-r from-primary to-primary-dark text-white hover:shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0"
+                        )}
+                      >
+                        {isRunning ? "Running..." : "Start Automation"}
+                        {!isRunning && <Play className="w-4 h-4 ml-2 fill-current" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -561,6 +587,46 @@ const App = () => {
           </div>
         </div>
       </main>
+
+      {/* Live View Sidebar Overlay */}
+      <AnimatePresence>
+        {isRunning && latestScreenshot && (
+          <motion.div 
+            initial={{ opacity: 0, x: 300 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 300 }}
+            className="fixed top-20 right-6 w-80 bg-slate-900/90 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl z-50 overflow-hidden"
+          >
+            <div className="bg-slate-800/80 px-4 py-2 border-b border-slate-700/50 flex items-center justify-between">
+              <div className="flex items-center text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2 animate-pulse" />
+                Live View
+              </div>
+              <button onClick={() => setLatestScreenshot(null)} className="text-slate-500 hover:text-white"><AlertCircle className="w-4 h-4" /></button>
+            </div>
+            <div className="aspect-video bg-black relative group">
+              <img 
+                src={latestScreenshot} 
+                alt="Robot View" 
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  console.error("Image load error:", latestScreenshot);
+                  // Optionally hide or show placeholder
+                }}
+              />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                <p className="text-[10px] text-slate-300 font-mono truncate">{latestScreenshot.split('/').pop().split('?')[0]}</p>
+              </div>
+            </div>
+            <div className="p-3 bg-slate-800/20">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-slate-500 uppercase font-bold">Status</span>
+                <span className="text-[10px] text-emerald-400 font-bold uppercase">Processing...</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Decorative Gradients */}
       <div className="fixed top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] -z-10 pointer-events-none" />

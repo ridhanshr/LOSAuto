@@ -7,9 +7,14 @@ from selenium.webdriver.edge.service import Service as EdgeService
 from selenium.webdriver.edge.options import Options as EdgeOptions
 from src.config import config
 
-def setup_webdriver(browser_type="edge"):
-    """Setup webdriver based on configuration"""
-    is_headless = config.get("headless", False)
+def setup_webdriver(browser_type="edge", fast_mode=False):
+    """Setup webdriver based on configuration.
+    
+    Args:
+        browser_type: Browser to use ('edge' or 'chrome')
+        fast_mode: If True, run headless with performance optimizations
+    """
+    is_headless = config.get("headless", False) or fast_mode
     
     if browser_type.lower() == "chrome":
         chrome_path = r'drivers/chromedriver.exe'
@@ -21,7 +26,12 @@ def setup_webdriver(browser_type="edge"):
         chrome_options.add_argument("--remote-allow-origins=*")
         chrome_options.add_argument("--incognito")
         if is_headless:
-            chrome_options.add_argument("--headless")
+            chrome_options.add_argument("--headless=new")
+            chrome_options.add_argument("--window-size=1920,1080")
+        if fast_mode:
+            chrome_options.add_argument("--disable-extensions")
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.page_load_strategy = 'eager'
         driver = webdriver.Chrome(service=service, options=chrome_options)
     else:  # Default to Edge
         edge_path = r'drivers/msedgedriver.exe'
@@ -30,10 +40,16 @@ def setup_webdriver(browser_type="edge"):
         edge_options.add_argument("--log-level=1")
         edge_options.add_argument("--remote-allow-origins=*")
         if is_headless:
-            edge_options.add_argument("--headless")
+            edge_options.add_argument("--headless=new")
+            edge_options.add_argument("--window-size=1920,1080")
+        if fast_mode:
+            edge_options.add_argument("--disable-extensions")
+            edge_options.add_argument("--no-sandbox")
+            edge_options.page_load_strategy = 'eager'
         driver = webdriver.Edge(service=service, options=edge_options)
     
-    driver.maximize_window()
+    if not is_headless:
+        driver.maximize_window()
     return driver
 
 def save_screenshot(driver, filename, screenshot_dir=None):

@@ -1,9 +1,10 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, protocol, net } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 
 let mainWindow;
+let currentProcess = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -28,6 +29,15 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Register custom protocol for images
+  protocol.handle('atom-img', (request) => {
+    const url = decodeURIComponent(request.url.replace('atom-img://', ''));
+    const isDev = process.env.NODE_ENV === 'development';
+    const projectRoot = isDev ? path.resolve(__dirname, '..') : process.resourcesPath;
+    const filePath = path.join(projectRoot, url);
+    return net.fetch('file://' + filePath);
+  });
+
   createWindow();
 
   app.on('activate', () => {
@@ -86,17 +96,29 @@ ipcMain.handle('run-automation', async (event, { scriptName, browserType, dataFi
     // Use the provided dataFile or fallback to default
     const targetDataFile = dataFile || path.join(projectRoot, 'Data/LOSData.xlsx');
 
-    
-    // Construct arguments including speed if relevant (implementation in python scripts may vary)
+    // Construct arguments including speed if relevant
     const args = ['-m', scriptName, '--browser', browserType.toLowerCase(), '--data-file', targetDataFile];
-    if (speed === 'Fast (Experimental)') args.push('--fast');
-    
+    const isFastMode = speed === 'Fast (Experimental)';
+    if (isFastMode) args.push('--fast');
+
     console.log(`Executing: ${pythonExe} ${args.join(' ')}`);
 
     const child = spawn(pythonExe, args, {
       cwd: projectRoot,
       env: { ...process.env, PYTHONUNBUFFERED: '1' },
       shell: true
+    });
+
+    currentProcess = child;
+
+    // Watch for new screenshots
+    const screenshotDir = path.join(projectRoot, 'Data', 'screenshoot');
+    if (!fs.existsSync(screenshotDir)) fs.mkdirSync(screenshotDir, { recursive: true });
+
+    const watcher = fs.watch(screenshotDir, (eventType, filename) => {
+      if (filename && filename.endsWith('.png')) {
+        event.sender.send('new-screenshot', filename);
+      }
     });
 
     child.stdout.on('data', (data) => {
@@ -108,6 +130,8 @@ ipcMain.handle('run-automation', async (event, { scriptName, browserType, dataFi
     });
 
     child.on('close', (code) => {
+      watcher.close();
+      currentProcess = null;
       event.sender.send('automation-log', `--- Process finished with code ${code} ---`);
       resolve({ code });
     });
@@ -158,3 +182,21 @@ ipcMain.handle('sync-webdriver', async (event, { browserType }) => {
   });
 });
 
+// IPC Handler to stop automation
+ipcMain.handle('stop-automation', async () => {
+  if (currentProcess) {
+    console.log('Stopping current automation process...');
+    // On Windows, taskkill is more reliable for tree killing
+    if (process.platform === 'win32') {
+      try {
+        execSync(`taskkill /pid ${currentProcess.pid} /f /t`);
+      } catch (err) {
+        console.error('Error stopping process:', err);
+      }
+    } else {
+      currentProcess.kill('SIGKILL');
+    }
+    return { success: true };
+  }
+  return { success: false };
+});

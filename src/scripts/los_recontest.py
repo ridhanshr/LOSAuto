@@ -48,7 +48,7 @@ def main():
     fast = args.fast
     def wait(seconds):
         """Adaptive sleep: reduced in fast mode."""
-        time.sleep(max(0.5, seconds * 0.3) if fast else seconds)
+        time.sleep(max(0.5, seconds * 0.6) if fast else seconds)
 
     driver = setup_webdriver(args.browser, fast_mode=args.fast)
 

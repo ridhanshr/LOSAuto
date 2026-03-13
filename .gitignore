@@ -34,3 +34,7 @@ __pycache__/
 *$py.class
 venv/
 env/
+
+# Data
+Data/screenshoot/*
+!Data/screenshoot/.gitkeep

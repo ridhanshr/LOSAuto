@@ -30,8 +30,6 @@ def setup_webdriver(browser_type="edge", fast_mode=False):
             chrome_options.add_argument("--window-size=1920,1080")
         if fast_mode:
             chrome_options.add_argument("--disable-extensions")
-            chrome_options.add_argument("--disable-images")
-            chrome_options.add_argument("--blink-settings=imagesEnabled=false")
             chrome_options.add_argument("--no-sandbox")
             chrome_options.page_load_strategy = 'eager'
         driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -46,8 +44,6 @@ def setup_webdriver(browser_type="edge", fast_mode=False):
             edge_options.add_argument("--window-size=1920,1080")
         if fast_mode:
             edge_options.add_argument("--disable-extensions")
-            edge_options.add_argument("--disable-images")
-            edge_options.add_argument("--blink-settings=imagesEnabled=false")
             edge_options.add_argument("--no-sandbox")
             edge_options.page_load_strategy = 'eager'
         driver = webdriver.Edge(service=service, options=edge_options)

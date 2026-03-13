@@ -40,7 +40,7 @@ def main():
     fast = args.fast
     def wait(seconds):
         """Adaptive sleep: reduced in fast mode."""
-        time.sleep(max(0.5, seconds * 0.3) if fast else seconds)
+        time.sleep(max(0.5, seconds * 0.6) if fast else seconds)
 
     # Setup webdriver based on argument or config
     driver = setup_webdriver(args.browser, fast_mode=fast)
@@ -181,7 +181,6 @@ def main():
         driver.find_element(By.XPATH, "//input[@id='mainPanel_branchPanel_BRANCHID_txtID']").send_keys(branchData)
         driver.find_element(By.XPATH, "//input[@id='mainPanel_btn_gen']").click()
         WebDriverWait(driver, 180).until(EC.invisibility_of_element((By.XPATH, '//body[1]/form[1]/div[3]/table[2]/tbody[1]/tr[2]/td[1]/table[2]/tbody[1]/tr[1]/td[2]/span[1]')))
-        save_screenshot(driver, '2.png')
         image_element = WebDriverWait(driver, 60).until(EC.visibility_of_element_located((By.XPATH, "//*[@id='mainPanel_tbl']/tbody/tr[2]/td[1]/img")))
         image_url = image_element.get_attribute('src')
         qrCode = image_url.split("data=")[1].split("&")[0]
@@ -189,6 +188,7 @@ def main():
         sheet1 = workbook['Entry Data']
         sheet1.cell(row=2, column=1).value = qrCode
         workbook.save(xlsxdataPath)
+        save_screenshot(driver, '2.png')
         driver.switch_to.default_content()
         logger.info("Generate QR Step End")
 

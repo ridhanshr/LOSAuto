@@ -32,7 +32,30 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "shortcutName": "LOS Auto Suite"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "../src",
+        "to": "src",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../Data",
+        "to": "Data",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../drivers",
+        "to": "drivers",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
   },
   "dependencies": {
     "clsx": "^2.1.1",

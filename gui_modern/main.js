@@ -75,10 +75,17 @@ ipcMain.handle('run-automation', async (event, { scriptName, browserType, dataFi
     console.log(`Starting automation: ${scriptName} with ${browserType} and speed ${speed}`);
     
     const pythonExe = process.platform === 'win32' ? 'python' : 'python3';
-    const projectRoot = path.resolve(__dirname, '..');
+    
+    // In production, resources are in process.resourcesPath
+    // In dev, they are in the parent directory
+    const isDev = process.env.NODE_ENV === 'development';
+    const projectRoot = isDev 
+      ? path.resolve(__dirname, '..') 
+      : process.resourcesPath;
     
     // Use the provided dataFile or fallback to default
     const targetDataFile = dataFile || path.join(projectRoot, 'Data/LOSData.xlsx');
+
     
     // Construct arguments including speed if relevant (implementation in python scripts may vary)
     const args = ['-m', scriptName, '--browser', browserType.toLowerCase(), '--data-file', targetDataFile];

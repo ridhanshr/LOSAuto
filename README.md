@@ -11,6 +11,7 @@ A modern, high-performance automation suite for Statement & LOS processing. Reim
   - Main LOS Automation
   - Supplement & Add-On Processing
   - Cobrand & Recontest Modules
+- **WebDriver Sync**: Automatically download and update Chrome/Edge drivers to match your browser version directly from the Settings menu.
 - **Flexible Storage**: Separate directories for screenshots and data outputs.
 - **Premium Branding**: Custom BRI assets and localized styling.
 

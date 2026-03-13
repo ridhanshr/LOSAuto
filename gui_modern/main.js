@@ -112,3 +112,42 @@ ipcMain.handle('run-automation', async (event, { scriptName, browserType, dataFi
   });
 });
 
+// IPC Handler to sync WebDrivers
+ipcMain.handle('sync-webdriver', async (event, { browserType }) => {
+  return new Promise((resolve, reject) => {
+    console.log(`Starting WebDriver sync for: ${browserType}`);
+    
+    const pythonExe = process.platform === 'win32' ? 'python' : 'python3';
+    const projectRoot = path.resolve(__dirname, '..');
+    
+    const args = ['-m', 'src.scripts.sync_webdriver', '--browser', browserType.toLowerCase()];
+    
+    console.log(`Executing: ${pythonExe} ${args.join(' ')}`);
+
+    const child = spawn(pythonExe, args, {
+      cwd: projectRoot,
+      env: { ...process.env, PYTHONUNBUFFERED: '1' },
+      shell: true
+    });
+
+    child.stdout.on('data', (data) => {
+      event.sender.send('automation-log', data.toString());
+    });
+
+    child.stderr.on('data', (data) => {
+      event.sender.send('automation-log', `[ERROR] ${data.toString()}`);
+    });
+
+    child.on('close', (code) => {
+      const msg = code === 0 ? "Sync completed successfully." : `Sync failed with code ${code}.`;
+      event.sender.send('automation-log', `--- ${msg} ---`);
+      resolve({ code, success: code === 0 });
+    });
+
+    child.on('error', (err) => {
+      event.sender.send('automation-log', `[SYSTEM ERROR] ${err.message}`);
+      reject(err);
+    });
+  });
+});
+

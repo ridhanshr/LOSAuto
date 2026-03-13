@@ -61,7 +61,8 @@ const Card = ({ title, value, icon: Icon, color }) => (
   </div>
 );
 
-const SettingsView = ({ settings, setSettings, onSave }) => {
+const SettingsView = ({ settings, setSettings, onSave, onSyncWebDriver, isSyncing }) => {
+
   const handleSelectDir = async (target) => {
     if (window.electronAPI && window.electronAPI.selectDirectory) {
       const dir = await window.electronAPI.selectDirectory();
@@ -101,7 +102,23 @@ const SettingsView = ({ settings, setSettings, onSave }) => {
                   <option>Google Chrome</option>
                 </select>
               </div>
+              <div className="flex flex-col justify-end">
+                <button 
+                  onClick={onSyncWebDriver}
+                  disabled={isSyncing}
+                  className={cn(
+                    "flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                    isSyncing 
+                      ? "bg-slate-700 text-slate-400 cursor-not-allowed" 
+                      : "bg-orange-500/10 text-orange-400 border border-orange-500/30 hover:bg-orange-500/20"
+                  )}
+                >
+                  <RotateCcw className={cn("w-4 h-4", isSyncing && "animate-spin")} />
+                  <span>{isSyncing ? 'Syncing...' : 'Sync WebDriver'}</span>
+                </button>
+              </div>
             </div>
+
           </section>
 
           <section className="space-y-4 pt-6 border-t border-slate-800">
@@ -173,6 +190,8 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [logs, setLogs] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
   const logEndRef = useRef(null);
 
   // Real States
@@ -239,6 +258,26 @@ const App = () => {
     localStorage.setItem('appSettings', JSON.stringify(settings));
     alert('Settings saved successfully!');
   };
+
+  const handleSyncWebDriver = async () => {
+    if (isSyncing || isRunning) return;
+    
+    setIsSyncing(true);
+    setLogs([]);
+    const browserToSync = settings.defaultBrowser.includes('Chrome') ? 'chrome' : 'edge';
+    setLogs(prev => [...prev, { id: Date.now(), msg: `>>> Syncing WebDriver for ${settings.defaultBrowser}...`, type: 'system' }]);
+    
+    try {
+      if (window.electronAPI && window.electronAPI.syncWebDriver) {
+        await window.electronAPI.syncWebDriver({ browserType: browserToSync });
+      }
+    } catch (err) {
+      setLogs(prev => [...prev, { id: Date.now(), msg: `[SYSTEM ERROR] ${err.message}`, type: 'error' }]);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
 
   const runAutomation = async (script) => {
     if (isRunning) return;
@@ -397,6 +436,8 @@ const App = () => {
                 settings={settings} 
                 setSettings={setSettings} 
                 onSave={handleSaveSettings} 
+                onSyncWebDriver={handleSyncWebDriver}
+                isSyncing={isSyncing}
               />
             </motion.div>
           ) : (

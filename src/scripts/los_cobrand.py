@@ -44,13 +44,14 @@ def run():
     parser = argparse.ArgumentParser()
     parser.add_argument("--browser", default=config.get("browser", "edge"), help="Browser type")
     parser.add_argument("--log-level", default=config.get("log_level", "info"), help="Log level")
+    parser.add_argument("--fast", action="store_true", help="Run in fast/headless mode")
     args, unknown = parser.parse_known_args()
 
     # Setup logging
     setup_logging(args.log_level)
     logger = logging.getLogger("LOSAuto.Cobrand")
 
-    driver = setup_webdriver(args.browser)
+    driver = setup_webdriver(args.browser, fast_mode=args.fast)
 
     try:
         start_time = time.time()

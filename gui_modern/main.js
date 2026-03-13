@@ -1,6 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 
 let mainWindow;
@@ -41,6 +41,78 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// Helper: Push current changes to dev branch
+function pushToDevBranch(projectRoot, logCallback) {
+  try {
+    const execOpts = { cwd: projectRoot, encoding: 'utf-8', stdio: 'pipe' };
+    logCallback('[GIT] Checking for dev branch...');
+
+    // Check if dev branch exists locally
+    let branches;
+    try {
+      branches = execSync('git branch --list dev', execOpts).trim();
+    } catch (e) {
+      logCallback('[GIT ERROR] Not a git repository or git not installed.');
+      return false;
+    }
+
+    // Stash current branch name
+    const currentBranch = execSync('git rev-parse --abbrev-ref HEAD', execOpts).trim();
+
+    if (!branches) {
+      logCallback('[GIT] Branch dev not found, creating...');
+      execSync('git checkout -b dev', execOpts);
+      logCallback('[GIT] Branch dev created.');
+    } else if (currentBranch !== 'dev') {
+      logCallback('[GIT] Switching to dev branch...');
+      execSync('git checkout dev', execOpts);
+    }
+
+    // Merge latest from current working branch if we were on a different branch
+    if (currentBranch !== 'dev' && branches) {
+      try {
+        logCallback(`[GIT] Merging changes from ${currentBranch}...`);
+        execSync(`git merge ${currentBranch} --no-edit`, execOpts);
+      } catch (e) {
+        logCallback('[GIT WARNING] Merge conflict detected, using current state.');
+      }
+    }
+
+    // Stage all, commit, and push
+    execSync('git add -A', execOpts);
+    try {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      execSync(`git commit -m "fast-mode: auto-commit ${timestamp}"`, execOpts);
+      logCallback('[GIT] Changes committed.');
+    } catch (e) {
+      logCallback('[GIT] No new changes to commit.');
+    }
+
+    logCallback('[GIT] Pushing to origin/dev...');
+    execSync('git push -u origin dev', execOpts);
+    logCallback('[GIT] Push to dev branch successful!');
+
+    // Switch back to original branch
+    if (currentBranch !== 'dev') {
+      execSync(`git checkout ${currentBranch}`, execOpts);
+      logCallback(`[GIT] Switched back to ${currentBranch}.`);
+    }
+
+    return true;
+  } catch (err) {
+    logCallback(`[GIT ERROR] ${err.message}`);
+    return false;
+  }
+}
+
+// IPC Handler to push to dev branch
+ipcMain.handle('push-to-dev', async (event) => {
+  const projectRoot = path.resolve(__dirname, '..');
+  const logCallback = (msg) => event.sender.send('automation-log', msg);
+  const success = pushToDevBranch(projectRoot, logCallback);
+  return { success };
 });
 
 // IPC Handler to select a file
@@ -89,7 +161,15 @@ ipcMain.handle('run-automation', async (event, { scriptName, browserType, dataFi
     
     // Construct arguments including speed if relevant (implementation in python scripts may vary)
     const args = ['-m', scriptName, '--browser', browserType.toLowerCase(), '--data-file', targetDataFile];
-    if (speed === 'Fast (Experimental)') args.push('--fast');
+    const isFastMode = speed === 'Fast (Experimental)';
+    if (isFastMode) args.push('--fast');
+
+    // In fast mode, push to dev branch first
+    if (isFastMode) {
+      event.sender.send('automation-log', '=== FAST MODE: Pushing to dev branch before automation ===');
+      pushToDevBranch(projectRoot, (msg) => event.sender.send('automation-log', msg));
+      event.sender.send('automation-log', '=== Starting headless automation ===');
+    }
     
     console.log(`Executing: ${pythonExe} ${args.join(' ')}`);
 

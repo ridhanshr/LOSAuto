@@ -19,7 +19,7 @@ A modern, high-performance automation suite for Statement & LOS processing. Reim
 Open PowerShell as Administrator and run:
 
 ```powershell
-irm https://raw.githubusercontent.com/ridhanshr/StatementGuard/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/ridhanshr/LOSAuto/main/install.ps1 | iex
 ```
 
 ## 🛠️ Tech Stack
@@ -34,7 +34,6 @@ irm https://raw.githubusercontent.com/ridhanshr/StatementGuard/main/install.ps1 
 - `gui_modern/`: React frontend and Electron main configuration.
 - `src/`: Core Python automation logic and utilities.
 - `Data/`: Default storage for Excel logs, screenshots, and configurations (configurable in-app).
-- `old_version/`: Legacy Tkinter version and build assets.
 
 ## ⚙️ Development
 

@@ -1,8 +1,9 @@
 # StatementGuard Installation Script
 # This script installs the LOS Auto Suite / StatementGuard application.
 
-$appName = "StatementGuard"
-$repoUrl = "https://github.com/ridhanshr/StatementGuard"
+$appName = "LOSAuto"
+$repoUrl = "https://github.com/ridhanshr/LOSAuto"
+
 $installDir = "$HOME\$appName"
 
 Write-Host "Installing $appName..." -ForegroundColor Cyan

@@ -1,45 +1,82 @@
-# StatementGuard Installation Script
-# This script installs the LOS Auto Suite / StatementGuard application.
+# ============================================================
+#  LOSAuto Installer
+#  Run: irm https://raw.githubusercontent.com/ridhanshr/LOSAuto/main/install.ps1 | iex
+# ============================================================
 
+$ErrorActionPreference = "Stop"
+$repo = "ridhanshr/LOSAuto"
 $appName = "LOSAuto"
-$repoUrl = "https://github.com/ridhanshr/LOSAuto"
 
-$installDir = "$HOME\$appName"
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host "  $appName Installer" -ForegroundColor Cyan
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host ""
 
-Write-Host "Installing $appName..." -ForegroundColor Cyan
-
-# 1. Create install directory
-if (!(Test-Path $installDir)) {
-    New-Item -ItemType Directory -Path $installDir | Out-Null
+# --- Get latest release from GitHub ---
+Write-Host "[1/4] Fetching latest release..." -ForegroundColor Yellow
+try {
+    $releaseApi = "https://api.github.com/repos/$repo/releases/latest"
+    $release = Invoke-RestMethod -Uri $releaseApi -UseBasicParsing
+    $version = $release.tag_name
+    Write-Host "  Latest version: $version" -ForegroundColor Green
+} catch {
+    Write-Host "  ERROR: Could not fetch release info." -ForegroundColor Red
+    Write-Host "  Make sure the repository has a published release." -ForegroundColor Red
+    Write-Host "  URL: https://github.com/$repo/releases" -ForegroundColor Gray
+    exit 1
 }
 
-Set-Location $installDir
+# --- Find Setup.exe asset ---
+Write-Host "[2/4] Finding installer..." -ForegroundColor Yellow
+$asset = $release.assets | Where-Object { $_.name -match "Setup.*\.exe$" } | Select-Object -First 1
 
-# 2. Check for Git
-if (!(Get-Command git -ErrorAction SilentlyContinue)) {
-    Write-Host "Git not found. Installing Git via winget..." -ForegroundColor Yellow
-    winget install --id Git.Git -e --source winget
+if (-not $asset) {
+    Write-Host "  ERROR: No Setup.exe found in the latest release." -ForegroundColor Red
+    Write-Host "  Available assets:" -ForegroundColor Gray
+    $release.assets | ForEach-Object { Write-Host "    - $($_.name)" -ForegroundColor Gray }
+    exit 1
 }
 
-# 3. Clone repository
-Write-Host "Cloning repository..." -ForegroundColor Cyan
-if (Test-Path ".git") {
-    git pull origin main
-} else {
-    git clone $repoUrl .
+$downloadUrl = $asset.browser_download_url
+$fileName = $asset.name
+$fileSize = [math]::Round($asset.size / 1MB, 1)
+Write-Host "  Found: $fileName ($fileSize MB)" -ForegroundColor Green
+
+# --- Download ---
+Write-Host "[3/4] Downloading $fileName..." -ForegroundColor Yellow
+$tempDir = Join-Path $env:TEMP "LOSAuto_Install"
+if (-not (Test-Path $tempDir)) { New-Item -ItemType Directory -Path $tempDir -Force | Out-Null }
+$downloadPath = Join-Path $tempDir $fileName
+
+try {
+    $ProgressPreference = 'SilentlyContinue'  # Speed up download
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $downloadPath -UseBasicParsing
+    $ProgressPreference = 'Continue'
+    Write-Host "  Downloaded to: $downloadPath" -ForegroundColor Green
+} catch {
+    Write-Host "  ERROR: Download failed." -ForegroundColor Red
+    Write-Host "  $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
 }
 
-# 4. Check for Node.js
-if (!(Get-Command npm -ErrorAction SilentlyContinue)) {
-    Write-Host "Node.js not found. Installing Node.js via winget..." -ForegroundColor Yellow
-    winget install --id OpenJS.NodeJS -e --source winget
-}
+# --- Run installer ---
+Write-Host "[4/4] Launching installer..." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "  The installer window will open shortly." -ForegroundColor Cyan
+Write-Host "  Follow the on-screen instructions to complete installation." -ForegroundColor Cyan
+Write-Host ""
 
-# 5. Install dependencies and Build
-Write-Host "Setting up GUI..." -ForegroundColor Cyan
-Set-Location "gui_modern"
-npm install
-npm run build
+Start-Process -FilePath $downloadPath -Wait
 
-Write-Host "`nInstallation complete!" -ForegroundColor Green
-Write-Host "To run the app, go to $installDir\gui_modern and run 'npm run electron'" -ForegroundColor White
+# --- Cleanup ---
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Green
+Write-Host "  Installation complete!" -ForegroundColor Green
+Write-Host "  You can now launch $appName from the Start Menu" -ForegroundColor Green
+Write-Host "  or the Desktop shortcut." -ForegroundColor Green
+Write-Host "============================================" -ForegroundColor Green
+Write-Host ""
+
+# Clean up temp files
+Remove-Item -Recurse -Force $tempDir -ErrorAction SilentlyContinue

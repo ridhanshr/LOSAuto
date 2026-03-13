@@ -78,10 +78,10 @@ const SettingsView = ({ settings, setSettings, onSave, onSyncWebDriver, isSyncin
       <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-8">
         <h3 className="text-2xl font-bold mb-6">Application Settings</h3>
         
-        <div className="space-y-8">
+        <div className="space-y-6">
           <section className="space-y-4">
             <h4 className="text-sm font-bold text-primary-light uppercase tracking-wider">Environment</h4>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm text-slate-400">Python Executable Path</label>
                 <input 
@@ -91,26 +91,26 @@ const SettingsView = ({ settings, setSettings, onSave, onSyncWebDriver, isSyncin
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none focus:border-primary" 
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm text-slate-400">Default Browser</label>
-                <select 
-                  value={settings.defaultBrowser}
-                  onChange={(e) => setSettings({...settings, defaultBrowser: e.target.value})}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none focus:border-primary"
-                >
-                  <option>Microsoft Edge</option>
-                  <option>Google Chrome</option>
-                </select>
-              </div>
-              <div className="flex flex-col justify-end">
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr,auto] gap-4 items-end">
+                <div className="space-y-2">
+                  <label className="text-sm text-slate-400">Default Browser</label>
+                  <select 
+                    value={settings.defaultBrowser}
+                    onChange={(e) => setSettings({...settings, defaultBrowser: e.target.value})}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-sm outline-none focus:border-primary"
+                  >
+                    <option>Microsoft Edge</option>
+                    <option>Google Chrome</option>
+                  </select>
+                </div>
                 <button 
                   onClick={onSyncWebDriver}
                   disabled={isSyncing}
                   className={cn(
-                    "flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-sm font-bold transition-all",
+                    "flex items-center justify-center space-x-2 px-6 py-2 rounded-lg text-sm font-bold transition-all h-[38px]",
                     isSyncing 
                       ? "bg-slate-700 text-slate-400 cursor-not-allowed" 
-                      : "bg-orange-500/10 text-orange-400 border border-orange-500/30 hover:bg-orange-500/20"
+                      : "bg-orange-500/10 text-orange-400 border border-orange-500/30 hover:bg-orange-500/20 active:scale-95"
                   )}
                 >
                   <RotateCcw className={cn("w-4 h-4", isSyncing && "animate-spin")} />
@@ -118,8 +118,8 @@ const SettingsView = ({ settings, setSettings, onSave, onSyncWebDriver, isSyncin
                 </button>
               </div>
             </div>
-
           </section>
+
 
           <section className="space-y-4 pt-6 border-t border-slate-800">
             <h4 className="text-sm font-bold text-secondary-light uppercase tracking-wider">Storage</h4>

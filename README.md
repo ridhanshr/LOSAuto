@@ -1,4 +1,4 @@
-# LOS Auto Suite (StatementGuard) 🛡️
+# LOS Auto Suite
 
 A modern, high-performance automation suite for Statement & LOS processing. Reimagined with a premium desktop experience using **Electron**, **React**, and **Tailwind CSS**.
 

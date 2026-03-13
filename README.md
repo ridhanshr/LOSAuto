@@ -2,8 +2,6 @@
 
 A modern, high-performance automation suite for Statement & LOS processing. Reimagined with a premium desktop experience using **Electron**, **React**, and **Tailwind CSS**.
 
-![App Screenshot](file:///C:/Users/muham/.gemini/antigravity/brain/c15c0443-1a35-41e3-b84e-eb5756dcca8c/vite_ui_final_success_check_1773288850543.webp)
-
 ## ✨ Features
 
 - **Modern UI/UX**: Dark-themed, glassmorphism-based design with smooth animations.

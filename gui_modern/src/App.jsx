@@ -362,7 +362,7 @@ const App = () => {
         </nav>
 
         <div className="mt-auto p-2 border-t border-slate-800/50 pt-4 flex justify-center text-xs text-slate-600 font-mono tracking-widest">
-          VERSION 1.0.0
+          VERSION 1.0
         </div>
       </aside>
 
@@ -618,19 +618,9 @@ const App = () => {
                 <p className="text-[10px] text-slate-300 font-mono truncate">{latestScreenshot.split('/').pop().split('?')[0]}</p>
               </div>
             </div>
-            <div className="p-3 bg-slate-800/20">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Status</span>
-                <span className="text-[10px] text-emerald-400 font-bold uppercase">Processing...</span>
-              </div>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Decorative Gradients */}
-      <div className="fixed top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px] -z-10 pointer-events-none" />
-      <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-secondary/10 rounded-full blur-[120px] -z-10 pointer-events-none" />
     </div>
   );
 };
